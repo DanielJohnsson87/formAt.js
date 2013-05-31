@@ -1,0 +1,14 @@
+/**
+ * The classes that are added by formAt.js to highlight a error. 
+ */
+.highlight {
+	border:1px solid #7ADB81;
+}
+.alert {
+	background: #F9DEDE;
+}
+.errorMessage {
+	font-size: 15px;
+	font-style: italic;
+	color:#AA0000;
+}
