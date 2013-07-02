@@ -114,7 +114,6 @@ var validateFlag = {},
 
 		datacreditcard : function(string, rule) {
 			var onlyDigits = string.replace(/-/g, '');
-			console.log(onlyDigits);
 			switch(rule) {
 				case 'visa':
 					//All Visa card numbers start with a 4. New cards have 16 digits. Old cards have 13. 
@@ -153,7 +152,6 @@ var validateFlag = {},
 					errorMessages = {datacreditcard : '* Not a valid ' + rule + ' card number.'};
 					return regEx.test(onlyDigits);
 				default:
-				console.log('default');
 					// All of the regexes above
 					var regEx = new RegExp(/^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\d{3})\d{11})$/);
 						errorMessages = {datacreditcard : '* Not a valid Creditcard number'};
@@ -243,7 +241,8 @@ var validateFlag = {},
 
 		return this.each(function() {
 
-			var $this = $(this);
+			var $this = $(this),
+				preventPost;
 
 			//Runs the method that we specified when we run our plugin
 			methods[method]();
@@ -252,17 +251,22 @@ var validateFlag = {},
 			$this.on('submit', function(event) {
 				//itterate through every input, select & textarea button and validate it
 				$('#formAt, input, select, textarea').each(function() {
-					//console.log(validateFlag);
 					var thisId = $(this).attr('id');
 					//If the field is false or undefined it´s not validated. We need to validate.
 					if(!validateFlag[thisId]) {
+						//console.log(validateFlag[thisId]);
 						methods.validateIfRequired($(this));
+						return preventPost = true;
 					} else {
-						return;
+						console.log('We succeded');
+						return preventPost = false;
 					}
 				});
+				if(preventPost) {
+					event.preventDefault();
+				};
 				//console.log(event);
-				event.preventDefault();
+				//event.preventDefault();
 
 			}); 
 
