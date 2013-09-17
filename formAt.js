@@ -3,6 +3,7 @@
 
 var validateFlag = {},
 	errorMessages = {},
+	preventPost = false,
 /**
  * Methods object. Store all the methods needed for the plugin here
  * Then we will require the specific method we need in the format function.
@@ -70,7 +71,7 @@ var validateFlag = {},
 			return regEx.test(string);
 		},
 		/**
-		 * requiredRule
+		 * datarequired
 		 * Validates if the field has anything but a single
 		 * whitespace or nothing at all.
 		 */
@@ -78,6 +79,48 @@ var validateFlag = {},
 			var regEx = new RegExp(/\S/);
 				errorMessages = {datarequired : '* This field is required.'}
 			return regEx.test(string);
+		},
+
+		/**
+		 * dataradiorequired
+		 * returns true if a radiobutton is checked.
+		 * also sets a validateFlag after the name of the 
+		 * field/fields. This way we can check if one out of many
+		 * radiobuttons was checked, as long as thay have the same
+		 * name. 
+		 */
+		
+		dataradiorequired : function(string, rule, element) {
+			var name = $(element).attr('name'),
+				id 	= $(element).attr('id'),
+				validated = false;
+				
+				if(validateFlag[name]) {
+					console.log('validated.');
+					return validated = true;
+				} else {
+					$(":input[name='" + name + "']")
+						.each(function() {
+							if($(this).is(':checked')) {
+								validateFlag[name] = true;
+								validated = true;
+							}
+						})
+				}
+
+				return validated;
+
+		},
+
+		/**
+		 * datacheckboxrequired
+		 * checkes if a checkbox i checked or not. 
+		 * Returns ture or false
+		 */
+		datacheckboxrequired : function(string, rule, element) {
+			errorMessages = {datacheckboxrequired : '* This box needs to be checked.'};
+			console.log(element.is(':checked'));
+			return $(element).is(':checked');
 		},
 
 		/**
@@ -164,7 +207,7 @@ var validateFlag = {},
 		 * When a field looses focus, run the validateInput method.
 		 */
 		validateForm : function(settings) {
-			$('#formAt, #formAt input, #formAt textarea').on('focus', function() {
+			$('#formAt, #formAt input, #formAt textarea, #formAt select').on('focus', function() {
 				var $this = $(this);
 				$this.addClass('highlight')
 				//Must use unbind because we are attaching a new focusout event handler 
@@ -185,11 +228,11 @@ var validateFlag = {},
 		 * display an alert if a validation error appears. 
 		 */
 		validateIfRequired : function($this, settings) {
-			var element 		= $this,
-				input 			= $this.val(),
-				id 				= $this.attr('id'),
+			var element			= $this,
+				input			= $this.val(),
+				id				= $this.attr('id'),
 				validationRules = {},
-				dataAttr 		= {};
+				dataAttr		= {};
 
 				//Fetch all attributes from the element we are working with
 				$(element[0].attributes).each(function() {
@@ -203,30 +246,28 @@ var validateFlag = {},
 					}
 				});
 
-				//If the object doesent contain a data- attr  ? 
+				//If the object doesent contain a data- attr 
 			if(!validationRules) {
-				console.log('nothing to validate');
 				//Else validate according to the rules in our methods.rule .
 			} else {
 					//Go through every key in validationRules
 					for(var ruleCat in validationRules) {
 							//Store the rule in a variabel
 							var rule = validationRules[ruleCat],
-								validate = methods[ruleCat](input, rule)
-								//validate = methods.validateAccordingToRules(rule, input, ruleCat),
+							validate = methods[ruleCat](input, rule, element);
 
 						//If it doesn't validate, alert and set the flag to false.
 						if(!validate){
-							$('#' + dataAttr).remove();
-							$this.addClass('alert')
-									.after('<p id="' + dataAttr +  '"class="errorMessage">' + errorMessages[dataAttr] + '</p>');
-							validateFlag[id] = false;
+								$('#' + id + '-error').remove();
+								$this.addClass('alert')
+									.after('<p id="' + id +  '-error"class="errorMessage">' + errorMessages[dataAttr] + '</p>');
+								validateFlag[id] = false;
+								preventPost = true;
 						//else woho! Remove the alert class and set the flag to true.
 						} else {
 							validateFlag[id] = true;
 							$this.removeClass('alert');
-							console.log('woho');
-							$('#' + dataAttr).remove();
+							$('#' + id + '-error').remove();
 						}
 					}
 				}
@@ -241,32 +282,31 @@ var validateFlag = {},
 
 		return this.each(function() {
 
-			var $this = $(this),
-				preventPost;
+			var $this = $(this);
 
 			//Runs the method that we specified when we run our plugin
 			methods[method]();
 
 			//When the form is submited
 			$this.on('submit', function(event) {
+
+				//Reset the preventPost variable.
+				preventPost = false;
+
 				//itterate through every input, select & textarea button and validate it
 				$('#formAt, input, select, textarea').each(function() {
-					var thisId = $(this).attr('id');
+					var thisId = $(this).attr('id'),
+						thisName = $(this).attr('name');
 					//If the field is false or undefined it´s not validated. We need to validate.
-					if(!validateFlag[thisId]) {
-						//console.log(validateFlag[thisId]);
-						methods.validateIfRequired($(this));
-						return preventPost = true;
-					} else {
-						console.log('We succeded');
-						return preventPost = false;
-					}
+						if(!validateFlag[thisId] || !validateFlag[thisName]) {
+							methods.validateIfRequired($(this));
+						}
 				});
-				if(preventPost) {
-					event.preventDefault();
-				};
-				//console.log(event);
-				//event.preventDefault();
+					if(preventPost) {
+						event.preventDefault();
+					} else {
+						event.preventDefault();
+					}
 
 			}); 
 
